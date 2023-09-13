@@ -1,70 +1,59 @@
-# DoH Client with Caching
+# DoHClient Python Module
 
-## Overview
+## Description
 
-This Python module implements a simple DNS over HTTPS (DoH) client for performing reverse DNS lookups. It utilizes the Quad9 DoH endpoint and includes a Least Recently Used (LRU) cache with time-based eviction policies to minimize network requests and improve performance.
+The DoHClient module in Python performs reverse DNS lookups for IPv4 addresses via DNS over HTTPS (DoH) using the Quad9 DoH endpoint. It includes caching and logging functionalities for efficiency and easier debugging. **Note: This module currently only supports IPv4 addresses.**
 
-## Features
+## Installation
 
-- **Reverse DNS Lookup**: Translates IP addresses to domain names using DoH.
-- **Cache Support**: Includes a caching mechanism to store previous lookups.
-- **Error Handling**: Implements retries for network errors.
-- **Logging**: Detailed logging to assist in debugging.
-- **Time-based Cache Eviction**: Removes stale cache entries based on a configurable time duration.
-
-## Requirements
-
-- Python 3.x
-- `requests` library
-
-You can install the `requests` library using pip:
+To install this module manually, download the code and run the following command in the directory where the code is stored:
 
 ```bash
-pip install requests
+python setup.py install
 ```
+
+## Dependencies
+
+- Python (>= 3.6)
+- `requests`
+- `ipaddress`
+
+> **Note**: `doh_cache` and `doh_logger` are custom modules; please ensure you include them in your project directory.
 
 ## Usage
 
-To use this DoH client, simply import the `DoHClient` class and create an instance. Then, you can perform a reverse DNS lookup by calling the `reverse_lookup` method:
+### Basic Usage
+
+Here's a simple example of how to use the DoHClient module:
 
 ```python
-from doh_client import DoHClient  # Assume your file is named doh_client.py
+from DoHClient import DoHClient
 
-client = DoHClient()
-domain = client.reverse_lookup("8.8.8.8")
-print(domain)
+doh_client = DoHClient()
+result = doh_client.reverse_lookup("8.8.8.8")
 ```
 
 ### Logging
 
-To enable logging, set up logging as follows:
+This module uses a custom logging module called `doh_logger`. Please make sure you set it up before running this module to capture debug information.
 
-```python
-import logging
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-```
+### Cache Duration
 
-## Classes and Methods
+The caching duration is set to 5 minutes by default and can be modified by changing the `CACHE_DURATION` static variable in the `DoHClient` class.
 
-### Cache Class
+## Features
 
-This class is an LRU cache with eviction policies based on time duration and maximum size. Methods include:
+- **IPv4 Support**: This module is currently limited to IPv4 addresses.
+- Uses the Quad9 DoH Endpoint for DNS lookups
+- Caches DNS lookups for faster repeated queries
+- Validates IPv4 addresses
+- Includes retries for failed requests
+- Logs events and errors
 
-- `add(key, value)`: Adds a key-value pair to the cache.
-- `retrieve(key)`: Retrieves a non-stale value from the cache if available.
-- `evict()`: Evicts stale entries from the cache.
+## Contributing
 
-### DoHClient Class
+Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
 
-This is the main class for handling DNS over HTTPS queries. Methods include:
+## License
 
-- `reverse_lookup(ip_address)`: Performs a reverse DNS lookup for the given IP address.
-
-## Potential Enhancements
-
-- Add configurable parameters for DoH endpoint and other constants.
-- Introduce asynchronous handling for multiple requests.
-- Increase test coverage for more robust functionality.
-
-```
-
+MIT License.
