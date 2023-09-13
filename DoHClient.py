@@ -8,9 +8,13 @@ from collections import OrderedDict
 logger = logging.getLogger('DoHClient')
 
 class Cache:
-    """A simple in-memory LRU cache for domain names."""
-
+    """Cache class for storing DNS lookups.
+    
+    This class implements an in-memory LRU cache with eviction policies based on time duration 
+    and maximum size. It is used for caching DNS responses to minimize network requests.
+    """
     def __init__(self, duration, max_size=100, eviction_frequency=60):
+        """Initialize the Cache object."""
         self.cache = OrderedDict()  # Maintains order of entries based on their use.
         self.duration = duration  # Time duration (seconds) after which an entry becomes stale.
         self.max_size = max_size  # Maximum cache size.
@@ -18,7 +22,11 @@ class Cache:
         self.eviction_frequency = eviction_frequency  # Interval (seconds) between eviction checks.
 
     def add(self, key, value):
-        """Add an entry to the cache."""
+        """Add a key-value pair to the cache.
+        Parameters:
+            key: The key for the cache entry, generally an IP address.
+            value: The value to be stored, usually a domain name.
+        """
         # If the key already exists, remove it so the new entry becomes the latest.
         if key in self.cache:
             self.cache.pop(key)
@@ -30,19 +38,36 @@ class Cache:
         # Add the new entry.
         self.cache[key] = (value, time.time())
         logger.debug(f"Added entry to cache for IP: {key}")
+        
+    def _evict_based_on_size(self):
+        """Remove entries from the cache until the size is under max_size."""
+        while len(self.cache) > self.max_size:
+            evicted_key, _ = self.cache.popitem(last=False)
+            logger.debug(f"Evicted oldest entry from cache for IP: {evicted_key}")
+            
+    def _evict_based_on_time(self):
+        """Remove stale entries from the cache."""
+        current_time = time.time()
+        keys_to_remove = [key for key, (_, timestamp) in self.cache.items() if current_time - timestamp >= self.duration]
+        for key in keys_to_remove:
+            del self.cache[key]
+            logger.debug(f"Evicted stale entry from cache for IP: {key}")
 
     def retrieve(self, key):
         """Retrieve an entry from the cache if it's not stale."""
-    
         # Check if it's time to evict based on time and size
         current_time = time.time()
         if current_time - self.last_eviction_time > self.eviction_frequency:
-            self.evict()  # Handle time-based eviction.
+            self._evict_based_on_time()  # New function for time-based eviction
+            self._evict_based_on_size()  # Existing function for size-based eviction
+            self.last_eviction_time = current_time
             # Handle size-based eviction.
             while len(self.cache) > self.max_size:
                 evicted_key, _ = self.cache.popitem(last=False)
                 logger.debug(f"Evicted oldest entry from cache for IP: {evicted_key}")
             self.last_eviction_time = current_time
+            
+            self._evict_based_on_size()  # Call the private method here
         
         # If the key is present and not stale, return the associated value.
         if key in self.cache:
@@ -61,16 +86,20 @@ class Cache:
         for key in keys_to_remove:
             del self.cache[key]
             logger.debug(f"Evicted stale entry from cache for IP: {key}")
+        self._evict_based_on_size()  # Call the private method here
 
 class DoHClient:
-    """A simple DNS over HTTPS client for reverse DNS lookups with caching."""
-
+    """DoHClient class for performing reverse DNS lookups via DNS over HTTPS (DoH).
+    
+    This class uses the Quad9 DoH endpoint to perform reverse DNS lookups and caches the results.
+    """
     QUAD9_DOH_ENDPOINT = "https://dns.quad9.net/dns-query"
     CACHE_DURATION = 300  # Cache duration in seconds (5 minutes).
     TIMEOUT = 30  # Request timeout in seconds.
     RETRIES = 3  # Number of retries for failed requests.
 
     def __init__(self):
+        """Initialize the DoHClient object."""
         self.cache = Cache(self.CACHE_DURATION)
 
     @staticmethod
@@ -103,6 +132,7 @@ class DoHClient:
                 response = requests.post(self.QUAD9_DOH_ENDPOINT, data=dns_query, headers=headers, timeout=self.TIMEOUT)
                 response.raise_for_status()
                 logger.info(f"Sent request for IP: {ip_address}")
+                
                 return response.content
             # Handle various types of request exceptions.
             except requests.Timeout:
@@ -116,17 +146,25 @@ class DoHClient:
         # Return None if all attempts failed.
         return None
 
-    def _parse_dns_response(self, response):
-        """Parse the DNS response to extract the domain name."""
-        # DNS message structure means domain data starts from the 13th byte.
-        # Next 2 bytes represent the domain name length.
-        domain_length = struct.unpack('>H', response[12:14])[0]
-        # Extract and decode the domain name.
-        domain_name = response[14:14 + domain_length].decode()
+    def _parse_dns_response(self, response_data):
+        """Parse the binary DNS response to extract the domain name."""
+        offset = 12  # Start after the header
+        while response_data[offset] != 0:  # Find the end of the QNAME section
+            offset += 1 + response_data[offset]
+        offset += 5  # Skip null byte, QTYPE, and QCLASS
+        offset += 2  # Skip the compression pointer in the answer section
+        domain_name = DoHClient._extract_domain_name(response_data, offset + 10)  # +10 to skip TYPE, CLASS, TTL, RDLENGTH
         return domain_name
 
     def reverse_lookup(self, ip_address):
-        """Perform a reverse DNS lookup."""
+        """Perform a reverse DNS lookup for an IP address.
+        
+        Parameters:
+            ip_address: The IP address to lookup.
+            
+        Returns:
+            The domain name if the lookup is successful, otherwise None.
+        """
         # Check if the domain is in the cache.
         cached_domain = self.cache.retrieve(ip_address)
         if cached_domain:
@@ -172,10 +210,10 @@ class DoHClient:
 
 
 # For users who want to see logs, they can set up logging as follows:
-# import logging
-# logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+#import logging
+#logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 # Example usage:
-# client = DoHClient()
-# domain = client.reverse_lookup("8.8.8.8")
-# print(domain)
+#client = DoHClient()
+#domain = client.reverse_lookup("8.8.8.8")
+#print(domain)
