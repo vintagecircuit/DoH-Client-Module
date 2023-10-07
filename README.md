@@ -37,6 +37,7 @@ To install this module manually, download the code and run the following command
 
 ```
 python setup.py install
+
 ```
 
 ## Dependencies
