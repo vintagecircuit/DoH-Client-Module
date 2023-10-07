@@ -37,7 +37,7 @@ To install this module manually, download the code and run the following command
 
 ``bash
 python setup.py install
-
+``
 
 ## Dependencies
 - Python (>= 3.6)
