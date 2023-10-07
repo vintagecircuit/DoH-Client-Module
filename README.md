@@ -52,8 +52,10 @@ python setup.py install
 ### Basic Usage
 Here's a simple example of how to use the DoHClient module:
 
-``python
-from DoHClient import DoHClient
+```
+python from DoHClient import DoHClient
+
+```
 
 doh_client = DoHClient()
 result = doh_client.reverse_lookup("8.8.8.8")
