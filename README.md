@@ -35,8 +35,9 @@ The DoHClient module performs reverse DNS lookups for IPv4 addresses via DNS ove
 
 To install this module manually, download the code and run the following command in the directory where the code is stored:
 
-``bash
+```
 python setup.py install
+```
 
 ## Dependencies
 - Python (>= 3.6)
