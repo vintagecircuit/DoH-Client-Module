@@ -57,10 +57,12 @@ python from DoHClient import DoHClient
 
 ```
 
+```
 doh_client = DoHClient()
 result = doh_client.reverse_lookup("8.8.8.8")
 print(result)
 
+```
 
 ## Logging
 Ensure the custom logging module, `doh_logger`, is set up before running the main module to capture all debug information.
