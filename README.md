@@ -44,7 +44,7 @@ python setup.py install
 - `requests`
 - `ipaddress`
 
-> **Note**: `doh_cache` and `doh_logger` are custom modules; ensure they are included in your project directory.
+**Note**: `doh_cache` and `doh_logger` are custom modules; ensure they are included in your project directory.
 
 ## Usage
 
